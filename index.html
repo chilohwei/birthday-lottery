@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="src/favicon.ico">
+    <title>生日大抽奖</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container" id="introContainer1">
+        <img id="avatar" src="src/avatar.png" alt="头像"> 
+        <div id="message">
+            <p id="line1"></p>
+        </div>
+    </div>
+    
+    <div class="container" id="introContainer2">
+        <div id="message">
+            <p id="line2"></p>
+        </div>
+    </div>
+    
+    <div class="container" id="introContainer3">
+        <div id="message">
+            <p id="line3"></p>
+        </div>
+    </div>
+
+    <div class="animation-container" id="animationContainer"></div>
+
+    <div class="wheel-container" id="wheelContainer">
+        <h1>生日大抽奖</h1>
+        <div id="my-lucky"></div>
+        <button id="startButton" onclick="startGame()">开始抽奖</button> <!-- 确保点击按钮时调用 startGame 函数 -->
+        <div id="prizeMapping"></div>
+    </div>
+
+    <script src="https://unpkg.com/lucky-canvas@1.7.25"></script>
+    <script src="config.js"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>
