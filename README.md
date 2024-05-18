@@ -6,8 +6,9 @@
 
 ## 演示
 
-[DEMO](https://cj.chiloh.com) 
+[抽奖页面](https://birthday-lottery.pages.dev/) 
 
+[抽奖日志](https://birthday-lottery.pages.dev/logs.html) 
 
 
 ## 使用
