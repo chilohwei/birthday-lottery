@@ -51,5 +51,7 @@
 
 注册并登录 [Vercel](https://vercel.com/) 然后点击 "New Project" 按钮，选择 "Import Git Repository" 选项，选择你 Fork 的 GitHub 仓库，然后点击 "Deploy" 按钮。
 
+- 假设 https://example.com 为部署好的网站，访问 https://example.com/logs.html 即可查看抽奖记录的日志。
+
 ## 贡献
 欢迎任何形式的贡献，包括但不限于报告问题、提出建议或提交代码。让我们一起让这个工具更加完善！
