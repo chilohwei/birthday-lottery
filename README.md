@@ -6,9 +6,9 @@
 
 ## 演示
 
-[抽奖页面](https://birthday-lottery.pages.dev/) 
+[抽奖页面](https://birthday-lottery.vercel.app/) 
 
-[抽奖日志](https://birthday-lottery.pages.dev/logs.html) 
+[抽奖日志](https://birthday-lottery.vercel.app/logs.html) 
 
 
 ## 使用
