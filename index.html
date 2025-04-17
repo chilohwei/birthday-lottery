@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="container" id="introContainer1">
-        <img id="avatar" src="src/avatar.png" alt="头像"> 
+        <img id="avatar" src="src/avatar.png" alt="头像">
         <div id="message">
             <p id="line1"></p>
         </div>
@@ -30,10 +30,21 @@
     <div class="animation-container" id="animationContainer"></div>
 
     <div class="wheel-container" id="wheelContainer">
-        <h1>幸运大抽奖</h1>
+        <h1>✨ 幸运大抽奖 ✨</h1>
         <div id="my-lucky"></div>
-        <button id="startButton" onclick="startGame()">开始抽奖</button> <!-- 确保点击按钮时调用 startGame 函数 -->
-        <div id="prizeMapping"></div>
+        <button id="startButton" aria-label="开始抽奖" onclick="startGame()">开始抽奖</button>
+        <div id="prizeMapping" role="list" aria-label="奖品列表"></div>
+    </div>
+    
+    <!-- 模态框 -->
+    <div class="modal-overlay" id="prizeModal">
+        <div class="modal-container">
+            <button class="modal-close" id="modalClose">×</button>
+            <div class="modal-icon" id="modalIcon">🎁</div>
+            <h2 class="modal-title">恭喜中奖！</h2>
+            <div class="modal-content" id="modalContent"></div>
+            <button class="modal-button" id="modalButton">太棒了！</button>
+        </div>
     </div>
 
     <script src="https://unpkg.com/lucky-canvas@1.7.25"></script>

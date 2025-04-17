@@ -11,6 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const prizeMapping = config.prizes;
     const contactPerson = config.contactPerson;
     let isPlaying = false;
+    
+    // 模态框元素
+    const prizeModal = document.getElementById('prizeModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalContent = document.getElementById('modalContent');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalButton = document.getElementById('modalButton');
+
+    // 获取CSS变量值
+    const styles = getComputedStyle(document.documentElement);
+    const primaryColor = styles.getPropertyValue('--primary-color').trim() || '#ff6f61';
+    const primaryLight = styles.getPropertyValue('--primary-light').trim() || '#ff856e';
+    const primaryDark = styles.getPropertyValue('--primary-dark').trim() || '#e55b50';
+    const gradientStart = styles.getPropertyValue('--gradient-start').trim() || '#a8edea';
+    const gradientEnd = styles.getPropertyValue('--gradient-end').trim() || '#fed6e3';
+    const white = styles.getPropertyValue('--white').trim() || '#fff';
 
     // 初始化奖品映射
     const prizeMappingElement = document.getElementById('prizeMapping');
@@ -36,6 +52,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         prizeMappingElement.appendChild(prizeCard);
     });
+    
+    // 模态框控制
+    function showModal(icon, content) {
+        modalIcon.innerText = icon;
+        modalContent.innerHTML = content;
+        prizeModal.classList.add('active');
+        
+        // 添加动画效果，让星星围绕模态框飘落
+        createConfetti();
+    }
+    
+    function hideModal() {
+        prizeModal.classList.remove('active');
+    }
+    
+    // 创建彩色粒子效果
+    function createConfetti() {
+        const colors = ['#ff6f61', '#a8edea', '#fed6e3', '#ffeb3b', '#4caf50'];
+        const symbols = ['✨', '🎉', '🎊', '⭐', '🌟'];
+        
+        for (let i = 0; i < 50; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'falling-emojis';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+            confetti.style.opacity = Math.random() * 0.5 + 0.5;
+            confetti.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+            document.body.appendChild(confetti);
+            
+            // 移除粒子
+            setTimeout(() => {
+                if (document.body.contains(confetti)) {
+                    document.body.removeChild(confetti);
+                }
+            }, 5000);
+        }
+    }
+    
+    // 模态框关闭事件
+    modalClose.addEventListener('click', hideModal);
+    modalButton.addEventListener('click', hideModal);
 
     function typeWriter(text, element, callback) {
         let i = 0;
@@ -107,28 +164,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const myLucky = new LuckyCanvas.LuckyWheel('#my-lucky', {
         width: 300,
         height: 300,
-        blocks: [{ padding: '10px', background: '#617df2' }],
+        blocks: [
+            { padding: '10px', background: primaryColor }
+        ],
         prizes: prizes.map((prize, index) => ({
-            background: index % 2 === 0 ? '#e9e8fe' : '#b8c5f2',
-            fonts: [{ text: prize }]
+            background: index % 2 === 0 ? gradientStart : gradientEnd,
+            fonts: [
+                { 
+                    text: prize,
+                    fontColor: primaryDark,
+                    fontWeight: '700',
+                    fontSize: '14px'
+                },
+                {
+                    text: prizeMapping[prize].icon,
+                    top: '60%',
+                    fontSize: '24px'
+                }
+            ]
         })),
-        buttons: [{ radius: '30%', background: '#869cfa', pointer: true }]
+        buttons: [
+            { 
+                radius: '35%', 
+                background: primaryColor,
+                pointer: true,
+                fonts: [
+                    {
+                        text: '开始',
+                        fontColor: white,
+                        fontWeight: 'bold',
+                        fontSize: '18px'
+                    }
+                ]
+            }
+        ],
+        start: function() {
+            // 转盘开始旋转
+            console.log('转盘开始旋转');
+        },
+        end: function(prize) {
+            // 转盘停止旋转
+            console.log('转盘停止，奖品是：', prize);
+        }
     });
 
     window.startGame = function() {
         if (isPlaying) return;
         isPlaying = true;
+        // 禁用开始按钮
+        startButton.disabled = true;
+        startButton.style.opacity = '0.5';
+        
         myLucky.play();
         setTimeout(() => {
             const prizeIndex = Math.floor(Math.random() * prizes.length);
             myLucky.stop(prizeIndex);
             showPrize(prizes[prizeIndex]);
+            
+            // 启用开始按钮
+            setTimeout(() => {
+                startButton.disabled = false;
+                startButton.style.opacity = '1';
+            }, 1000);
         }, 3000);
     }
 
     function showPrize(prize) {
+        const prizeIcon = prizeMapping[prize].icon;
         const prizeText = prizeMapping[prize].description;
         const message = `恭喜你抽中了奖品：${prizeText}，请找${contactPerson}兑换。`;
+        
+        // 显示模态框
+        showModal(prizeIcon, `
+            <p>恭喜你抽中了：</p>
+            <p><strong>${prizeText}</strong></p>
+            <p>请联系 <strong>${contactPerson}</strong> 兑换你的奖品！</p>
+        `);
+        
         logPrize(prizeText, message).then(() => {
             isPlaying = false;
         });
