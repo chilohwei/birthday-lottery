@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
+const axios = require('axios');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -32,10 +33,32 @@ app.post('/api/log-prize', async (req, res) => {
             return res.status(400).json({ error: '缺少必要字段' });
         }
         
-        // 添加源IP地址（为了分析用途，可以选择性地隐去最后一段）
-        const ip = req.ip || req.connection.remoteAddress;
+        // 获取用户IP地址
+        const ip = req.headers['x-forwarded-for'] || 
+            req.connection.remoteAddress || 
+            req.socket.remoteAddress || 
+            req.ip || 
+            '0.0.0.0';
+        
+        // 保存完整IP，但公开时隐藏最后一段
+        newLog.fullIp = ip;
         newLog.ip = ip.replace(/\.\d+$/, '.xxx'); // 隐藏最后一段IP
         
+        // 尝试获取IP地理位置
+        try {
+            const location = await getIpLocation(ip);
+            if (location) {
+                newLog.location = location;
+            }
+        } catch (err) {
+            console.error('获取IP地理位置失败:', err);
+        }
+        
+        // 添加其他通用字段
+        newLog.userAgent = req.headers['user-agent'] || '';
+        newLog.createdAt = new Date().toISOString();
+        
+        // 读取现有日志并添加新记录
         const logs = await readLogs();
         logs.push(newLog);
         
@@ -47,6 +70,28 @@ app.post('/api/log-prize', async (req, res) => {
         res.status(500).json({ error: '无法保存日志' });
     }
 });
+
+// IP地理位置查询API
+async function getIpLocation(ip) {
+    // 跳过本地IP和内网IP的查询
+    if (ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.16.')) {
+        return '本地网络';
+    }
+    
+    try {
+        // 使用免费的IP地理位置API
+        const response = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city&lang=zh-CN`);
+        
+        if (response.data && response.data.status === 'success') {
+            const { country, regionName, city } = response.data;
+            return `${country} ${regionName} ${city}`.trim();
+        }
+    } catch (error) {
+        console.error('IP地理位置查询失败:', error.message);
+    }
+    
+    return null;
+}
 
 // 帮助函数：读取日志文件
 async function readLogs() {

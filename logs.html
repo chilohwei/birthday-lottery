@@ -110,6 +110,11 @@
             font-weight: bold;
         }
         
+        .location-cell {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
         @media (max-width: 600px) {
             .header {
                 flex-direction: column;
@@ -136,10 +141,6 @@
         
         <div class="filter-bar">
             <input type="text" id="searchInput" placeholder="搜索...">
-            <select id="prizeFilter">
-                <option value="">全部奖品</option>
-                <!-- 奖品选项将通过JavaScript动态填充 -->
-            </select>
             <select id="sortOrder">
                 <option value="newest">最新优先</option>
                 <option value="oldest">最早优先</option>
@@ -152,6 +153,7 @@
                     <tr>
                         <th>时间</th>
                         <th>奖品</th>
+                        <th>位置/IP</th>
                         <th>详情</th>
                     </tr>
                 </thead>
@@ -176,7 +178,6 @@
             const logTableBody = document.getElementById('logTableBody');
             const noRecords = document.getElementById('noRecords');
             const prizeStats = document.getElementById('prizeStats');
-            const prizeFilter = document.getElementById('prizeFilter');
             const sortOrder = document.getElementById('sortOrder');
             const searchInput = document.getElementById('searchInput');
             const pagination = document.getElementById('pagination');
@@ -185,18 +186,6 @@
             let filteredLogs = [];
             let currentPage = 1;
             const logsPerPage = 10;
-            
-            // 从配置文件加载奖品选项
-            function loadPrizeOptions() {
-                if (!config || !config.prizes) return;
-                
-                Object.keys(config.prizes).forEach(prizeKey => {
-                    const option = document.createElement('option');
-                    option.value = prizeKey;
-                    option.textContent = `${config.prizes[prizeKey].icon} ${config.prizes[prizeKey].description}`;
-                    prizeFilter.appendChild(option);
-                });
-            }
             
             // 格式化日期时间
             function formatDateTime(dateString) {
@@ -255,20 +244,29 @@
                 
                 // 计算总数和每个奖品的数量
                 const totalCount = allLogs.length;
-                const prizeCounts = {};
                 
-                // 初始化所有奖品的计数为0
-                if (config && config.prizes) {
-                    Object.keys(config.prizes).forEach(prize => {
-                        prizeCounts[prize] = 0;
-                    });
-                }
+                // 统计奖品分布情况（通用方案，不依赖预定义的奖品列表）
+                const prizeCounts = {};
+                const prizeIcons = {};
                 
                 // 统计每个奖品的数量
                 allLogs.forEach(log => {
-                    if (log.prize && prizeCounts.hasOwnProperty(log.prize)) {
-                        prizeCounts[log.prize]++;
+                    if (!log.prize) return;
+                    
+                    if (!prizeCounts[log.prize]) {
+                        prizeCounts[log.prize] = 0;
+                        
+                        // 尝试从奖品中获取图标
+                        if (config && config.prizes && config.prizes[log.prize]) {
+                            prizeIcons[log.prize] = config.prizes[log.prize].icon;
+                        } else if (log.prizeIcon) {
+                            prizeIcons[log.prize] = log.prizeIcon;
+                        } else {
+                            prizeIcons[log.prize] = '🎁'; // 默认图标
+                        }
                     }
+                    
+                    prizeCounts[log.prize]++;
                 });
                 
                 // 清空统计区域
@@ -284,40 +282,36 @@
                 prizeStats.appendChild(totalCard);
                 
                 // 为每个奖品添加统计卡片
-                if (config && config.prizes) {
-                    Object.keys(config.prizes).forEach(prize => {
-                        const count = prizeCounts[prize] || 0;
-                        const card = document.createElement('div');
-                        card.className = 'stat-card';
-                        card.innerHTML = `
-                            <div>${config.prizes[prize].icon} ${prize}</div>
-                            <div class="stat-number">${count}</div>
-                            <div>共 ${Math.round((count / totalCount) * 100)}%</div>
-                        `;
-                        prizeStats.appendChild(card);
-                    });
-                }
+                Object.keys(prizeCounts).forEach(prize => {
+                    const count = prizeCounts[prize];
+                    const icon = prizeIcons[prize] || '🎁';
+                    const card = document.createElement('div');
+                    card.className = 'stat-card';
+                    card.innerHTML = `
+                        <div>${icon} ${prize}</div>
+                        <div class="stat-number">${count}</div>
+                        <div>共 ${Math.round((count / totalCount) * 100)}%</div>
+                    `;
+                    prizeStats.appendChild(card);
+                });
             }
             
             // 应用过滤和排序
             function applyFiltersAndSort() {
                 const searchTerm = searchInput.value.toLowerCase();
-                const selectedPrize = prizeFilter.value;
                 const selectedSort = sortOrder.value;
                 
                 // 过滤日志
                 filteredLogs = allLogs.filter(log => {
-                    // 奖品过滤
-                    if (selectedPrize && log.prize !== selectedPrize) {
-                        return false;
-                    }
-                    
                     // 搜索过滤
                     if (searchTerm) {
-                        const prizeText = log.prizeText || '';
+                        const prizeText = log.prizeText || log.prize || '';
                         const notification = log.notification || '';
+                        const location = log.location || log.ip || '';
+                        
                         return prizeText.toLowerCase().includes(searchTerm) || 
-                               notification.toLowerCase().includes(searchTerm);
+                               notification.toLowerCase().includes(searchTerm) ||
+                               location.toLowerCase().includes(searchTerm);
                     }
                     
                     return true;
@@ -424,12 +418,25 @@
                     // 奖品列
                     const prizeCell = document.createElement('td');
                     prizeCell.className = 'prize-cell';
+                    
+                    let prizeIcon = '🎁'; // 默认图标
+                    let prizeText = log.prizeText || log.prize || '未知奖品';
+                    
+                    // 尝试从配置获取奖品图标
                     if (config && config.prizes && log.prize && config.prizes[log.prize]) {
-                        prizeCell.innerHTML = `${config.prizes[log.prize].icon} ${log.prizeText || log.prize}`;
-                    } else {
-                        prizeCell.textContent = log.prizeText || log.prize || '未知奖品';
+                        prizeIcon = config.prizes[log.prize].icon;
+                    } else if (log.prizeIcon) {
+                        prizeIcon = log.prizeIcon;
                     }
+                    
+                    prizeCell.innerHTML = `${prizeIcon} ${prizeText}`;
                     row.appendChild(prizeCell);
+                    
+                    // 位置/IP列
+                    const locationCell = document.createElement('td');
+                    locationCell.className = 'location-cell';
+                    locationCell.textContent = log.location || log.ip || '未知';
+                    row.appendChild(locationCell);
                     
                     // 详情列
                     const detailCell = document.createElement('td');
@@ -449,18 +456,12 @@
                 applyFiltersAndSort();
             });
             
-            prizeFilter.addEventListener('change', () => {
-                currentPage = 1;
-                applyFiltersAndSort();
-            });
-            
             sortOrder.addEventListener('change', () => {
                 currentPage = 1;
                 applyFiltersAndSort();
             });
             
             // 初始化
-            loadPrizeOptions();
             await loadLogs();
         });
     </script>

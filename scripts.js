@@ -241,12 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>请联系 <strong>${contactPerson}</strong> 兑换你的奖品！</p>
         `);
         
-        logPrize(prize, prizeText, message).then(() => {
+        logPrize(prize, prizeText, prizeIcon, message).then(() => {
             isPlaying = false;
         });
     }
 
-    async function logPrize(prize, prizeText, message) {
+    async function logPrize(prize, prizeText, prizeIcon, message) {
         try {
             const now = new Date();
             // 创建日志对象
@@ -254,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 time: now.toISOString(), 
                 timestamp: now.getTime(),
                 prize: prize,
-                prizeText: prizeText, 
+                prizeText: prizeText,
+                prizeIcon: prizeIcon, 
                 notification: message,
                 userAgent: navigator.userAgent,
                 // 添加唯一标识，避免重复记录
@@ -267,18 +268,22 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('prizeLog', JSON.stringify(prizeLog));
             
             // 同时发送到服务器
-            const response = await fetch('api/log-prize', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(logEntry)
-            });
-            
-            if (!response.ok) {
-                console.warn('日志记录到服务器失败，已存储到本地: ', logEntry);
-            } else {
-                console.log('日志已成功记录到服务器');
+            try {
+                const response = await fetch('api/log-prize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(logEntry)
+                });
+                
+                if (!response.ok) {
+                    console.warn('日志记录到服务器失败，已存储到本地: ', logEntry);
+                } else {
+                    console.log('日志已成功记录到服务器');
+                }
+            } catch (error) {
+                console.error('发送日志到服务器时出错: ', error);
             }
         } catch (error) {
             console.error('记录日志时出错: ', error);
