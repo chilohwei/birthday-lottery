@@ -4,98 +4,465 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="src/favicon.ico">
-    <title>抽奖日志</title>
+    <title>抽奖记录</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.16.13/antd.min.css" >
+    <style>
+        body {
+            display: block;
+            padding: 30px;
+            height: auto;
+            min-height: 100vh;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .back-button {
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .log-container {
+            opacity: 1;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .no-records {
+            text-align: center;
+            padding: 40px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-bar input, .filter-bar select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            flex-grow: 1;
+        }
+        
+        .prize-stat {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            border-top: 3px solid var(--primary-color);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .log-table-container {
+            overflow-x: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            background-color: white;
+        }
+        
+        .timestamp-cell {
+            white-space: nowrap;
+        }
+        
+        .prize-cell {
+            font-weight: bold;
+        }
+        
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="log-container">
-        <h1>抽奖日志</h1>
-        <table id="logTable">
-            <thead>
-                <tr>
-                    <th>日期</th>
-                    <th>时间</th>
-                    <th>奖项</th>
-                </tr>
-            </thead>
-            <tbody id="logContent"></tbody>
-        </table>
-        <div id="pagination" class="pagination"></div>
-        <button onClick="clearLogs()">清除日志</button>
+        <div class="header">
+            <h1>幸运大抽奖 - 抽奖记录</h1>
+            <a href="index.html" class="back-button">返回首页</a>
+        </div>
+        
+        <div class="prize-stat" id="prizeStats">
+            <!-- 奖品统计将通过JavaScript动态填充 -->
+        </div>
+        
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="搜索...">
+            <select id="prizeFilter">
+                <option value="">全部奖品</option>
+                <!-- 奖品选项将通过JavaScript动态填充 -->
+            </select>
+            <select id="sortOrder">
+                <option value="newest">最新优先</option>
+                <option value="oldest">最早优先</option>
+            </select>
+        </div>
+        
+        <div class="log-table-container">
+            <table id="logTable">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>奖品</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    <!-- 日志条目将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="noRecords" class="no-records" style="display: none;">
+            <p>暂无抽奖记录</p>
+        </div>
+        
+        <div class="pagination" id="pagination">
+            <!-- 分页控件将通过JavaScript动态填充 -->
+        </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.16.13/antd.min.js"></script>
+    
+    <script src="config.js"></script>
     <script>
-        const itemsPerPage = 10;
-        let currentPage = 1;
-
-        // 加载日志并分页显示
-        function loadLogs(page = 1, pageSize = itemsPerPage) {
-            const logContent = document.getElementById('logContent');
-            const logs = JSON.parse(localStorage.getItem('prizeLog')) || [];
-            logContent.innerHTML = '';
-
-            // 按时间倒序排列
-            logs.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-            // 分页
-            const startIndex = (page - 1) * pageSize;
-            const endIndex = Math.min(startIndex + pageSize, logs.length);
-            const paginatedLogs = logs.slice(startIndex, endIndex);
-
-            paginatedLogs.forEach(log => {
-                const date = new Date(log.time);
-                const dateString = date.toLocaleDateString();
-                const timeString = date.toLocaleTimeString();
-                const logEntry = document.createElement('tr');
-                logEntry.innerHTML = `
-                    <td>${dateString}</td>
-                    <td>${timeString}</td>
-                    <td>${log.prize}</td>
-                `;
-                logContent.appendChild(logEntry);
-            });
-
-            // 更新分页
-            updatePagination(logs.length, page, pageSize);
-        }
-
-        // 更新分页组件
-        function updatePagination(totalItems, currentPage, pageSize) {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const logTableBody = document.getElementById('logTableBody');
+            const noRecords = document.getElementById('noRecords');
+            const prizeStats = document.getElementById('prizeStats');
+            const prizeFilter = document.getElementById('prizeFilter');
+            const sortOrder = document.getElementById('sortOrder');
+            const searchInput = document.getElementById('searchInput');
             const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-
-            ReactDOM.render(
-                React.createElement(
-                    antd.Pagination,
-                    {
-                        current: currentPage,
-                        total: totalItems,
-                        pageSize: pageSize,
-                        showSizeChanger: true,
-                        showQuickJumper: true,
-                        onChange: (page, pageSize) => {
-                            currentPage = page;
-                            loadLogs(page, pageSize);
-                        },
-                        showTotal: (total) => `共 ${total} 条记录`,
+            
+            let allLogs = [];
+            let filteredLogs = [];
+            let currentPage = 1;
+            const logsPerPage = 10;
+            
+            // 从配置文件加载奖品选项
+            function loadPrizeOptions() {
+                if (!config || !config.prizes) return;
+                
+                Object.keys(config.prizes).forEach(prizeKey => {
+                    const option = document.createElement('option');
+                    option.value = prizeKey;
+                    option.textContent = `${config.prizes[prizeKey].icon} ${config.prizes[prizeKey].description}`;
+                    prizeFilter.appendChild(option);
+                });
+            }
+            
+            // 格式化日期时间
+            function formatDateTime(dateString) {
+                const date = new Date(dateString);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            }
+            
+            // 加载日志数据
+            async function loadLogs() {
+                try {
+                    // 尝试从API获取日志
+                    const response = await fetch('api/prize-logs');
+                    
+                    if (response.ok) {
+                        allLogs = await response.json();
+                    } else {
+                        // 如果API失败，尝试从localStorage获取
+                        console.warn('无法从服务器获取日志，尝试从本地存储获取');
+                        const localLogs = localStorage.getItem('prizeLog');
+                        allLogs = localLogs ? JSON.parse(localLogs) : [];
                     }
-                ),
-                pagination
-            );
-        }
-
-        // 清除日志
-        function clearLogs() {
-            localStorage.removeItem('prizeLog');
-            loadLogs();
-        }
-
-        // 初始加载日志
-        loadLogs();
+                    
+                    // 默认按照最新排序
+                    allLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                    
+                    // 计算并显示统计信息
+                    updateStats();
+                    
+                    // 应用过滤和排序
+                    applyFiltersAndSort();
+                } catch (error) {
+                    console.error('加载日志时出错:', error);
+                    noRecords.style.display = 'block';
+                    noRecords.innerHTML = `<p>加载日志时出错: ${error.message}</p>`;
+                }
+            }
+            
+            // 更新统计信息
+            function updateStats() {
+                if (!allLogs || allLogs.length === 0) {
+                    prizeStats.innerHTML = `
+                        <div class="stat-card">
+                            <div>总抽奖次数</div>
+                            <div class="stat-number">0</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 计算总数和每个奖品的数量
+                const totalCount = allLogs.length;
+                const prizeCounts = {};
+                
+                // 初始化所有奖品的计数为0
+                if (config && config.prizes) {
+                    Object.keys(config.prizes).forEach(prize => {
+                        prizeCounts[prize] = 0;
+                    });
+                }
+                
+                // 统计每个奖品的数量
+                allLogs.forEach(log => {
+                    if (log.prize && prizeCounts.hasOwnProperty(log.prize)) {
+                        prizeCounts[log.prize]++;
+                    }
+                });
+                
+                // 清空统计区域
+                prizeStats.innerHTML = '';
+                
+                // 添加总数统计卡片
+                const totalCard = document.createElement('div');
+                totalCard.className = 'stat-card';
+                totalCard.innerHTML = `
+                    <div>总抽奖次数</div>
+                    <div class="stat-number">${totalCount}</div>
+                `;
+                prizeStats.appendChild(totalCard);
+                
+                // 为每个奖品添加统计卡片
+                if (config && config.prizes) {
+                    Object.keys(config.prizes).forEach(prize => {
+                        const count = prizeCounts[prize] || 0;
+                        const card = document.createElement('div');
+                        card.className = 'stat-card';
+                        card.innerHTML = `
+                            <div>${config.prizes[prize].icon} ${prize}</div>
+                            <div class="stat-number">${count}</div>
+                            <div>共 ${Math.round((count / totalCount) * 100)}%</div>
+                        `;
+                        prizeStats.appendChild(card);
+                    });
+                }
+            }
+            
+            // 应用过滤和排序
+            function applyFiltersAndSort() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedPrize = prizeFilter.value;
+                const selectedSort = sortOrder.value;
+                
+                // 过滤日志
+                filteredLogs = allLogs.filter(log => {
+                    // 奖品过滤
+                    if (selectedPrize && log.prize !== selectedPrize) {
+                        return false;
+                    }
+                    
+                    // 搜索过滤
+                    if (searchTerm) {
+                        const prizeText = log.prizeText || '';
+                        const notification = log.notification || '';
+                        return prizeText.toLowerCase().includes(searchTerm) || 
+                               notification.toLowerCase().includes(searchTerm);
+                    }
+                    
+                    return true;
+                });
+                
+                // 应用排序
+                if (selectedSort === 'oldest') {
+                    filteredLogs.sort((a, b) => new Date(a.time) - new Date(b.time));
+                } else {
+                    filteredLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                }
+                
+                // 更新表格
+                updateTable();
+            }
+            
+            // 更新分页
+            function updatePagination() {
+                pagination.innerHTML = '';
+                
+                if (filteredLogs.length === 0) return;
+                
+                const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+                
+                // 最多显示7个页码
+                const maxPagesToShow = 7;
+                let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+                let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+                
+                // 调整起始页
+                if (endPage - startPage + 1 < maxPagesToShow) {
+                    startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                }
+                
+                // 添加"上一页"按钮
+                if (currentPage > 1) {
+                    const prevLink = document.createElement('span');
+                    prevLink.className = 'page-link';
+                    prevLink.textContent = '上一页';
+                    prevLink.addEventListener('click', () => {
+                        currentPage--;
+                        updateTable();
+                    });
+                    pagination.appendChild(prevLink);
+                }
+                
+                // 添加页码
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageLink = document.createElement('span');
+                    pageLink.className = 'page-link';
+                    if (i === currentPage) {
+                        pageLink.classList.add('active');
+                    }
+                    pageLink.textContent = i;
+                    pageLink.addEventListener('click', () => {
+                        currentPage = i;
+                        updateTable();
+                    });
+                    pagination.appendChild(pageLink);
+                }
+                
+                // 添加"下一页"按钮
+                if (currentPage < totalPages) {
+                    const nextLink = document.createElement('span');
+                    nextLink.className = 'page-link';
+                    nextLink.textContent = '下一页';
+                    nextLink.addEventListener('click', () => {
+                        currentPage++;
+                        updateTable();
+                    });
+                    pagination.appendChild(nextLink);
+                }
+            }
+            
+            // 更新表格
+            function updateTable() {
+                logTableBody.innerHTML = '';
+                
+                if (filteredLogs.length === 0) {
+                    document.querySelector('.log-table-container').style.display = 'none';
+                    pagination.style.display = 'none';
+                    noRecords.style.display = 'block';
+                    return;
+                }
+                
+                document.querySelector('.log-table-container').style.display = 'block';
+                noRecords.style.display = 'none';
+                
+                // 计算当前页的记录
+                const startIdx = (currentPage - 1) * logsPerPage;
+                const endIdx = Math.min(startIdx + logsPerPage, filteredLogs.length);
+                const currentLogs = filteredLogs.slice(startIdx, endIdx);
+                
+                // 添加记录到表格
+                currentLogs.forEach(log => {
+                    const row = document.createElement('tr');
+                    
+                    // 时间列
+                    const timeCell = document.createElement('td');
+                    timeCell.className = 'timestamp-cell';
+                    timeCell.textContent = formatDateTime(log.time);
+                    row.appendChild(timeCell);
+                    
+                    // 奖品列
+                    const prizeCell = document.createElement('td');
+                    prizeCell.className = 'prize-cell';
+                    if (config && config.prizes && log.prize && config.prizes[log.prize]) {
+                        prizeCell.innerHTML = `${config.prizes[log.prize].icon} ${log.prizeText || log.prize}`;
+                    } else {
+                        prizeCell.textContent = log.prizeText || log.prize || '未知奖品';
+                    }
+                    row.appendChild(prizeCell);
+                    
+                    // 详情列
+                    const detailCell = document.createElement('td');
+                    detailCell.textContent = log.notification || '';
+                    row.appendChild(detailCell);
+                    
+                    logTableBody.appendChild(row);
+                });
+                
+                // 更新分页
+                updatePagination();
+            }
+            
+            // 绑定事件监听器
+            searchInput.addEventListener('input', () => {
+                currentPage = 1;
+                applyFiltersAndSort();
+            });
+            
+            prizeFilter.addEventListener('change', () => {
+                currentPage = 1;
+                applyFiltersAndSort();
+            });
+            
+            sortOrder.addEventListener('change', () => {
+                currentPage = 1;
+                applyFiltersAndSort();
+            });
+            
+            // 初始化
+            loadPrizeOptions();
+            await loadLogs();
+        });
     </script>
 </body>
 </html>

@@ -241,17 +241,48 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>请联系 <strong>${contactPerson}</strong> 兑换你的奖品！</p>
         `);
         
-        logPrize(prizeText, message).then(() => {
+        logPrize(prize, prizeText, message).then(() => {
             isPlaying = false;
         });
     }
 
-    async function logPrize(prizeText, message) {
-        const now = new Date();
-        const logEntry = { time: now.toISOString(), prize: prizeText, notification: message };
-        let prizeLog = JSON.parse(localStorage.getItem('prizeLog')) || [];
-        prizeLog.push(logEntry);
-        localStorage.setItem('prizeLog', JSON.stringify(prizeLog));
+    async function logPrize(prize, prizeText, message) {
+        try {
+            const now = new Date();
+            // 创建日志对象
+            const logEntry = { 
+                time: now.toISOString(), 
+                timestamp: now.getTime(),
+                prize: prize,
+                prizeText: prizeText, 
+                notification: message,
+                userAgent: navigator.userAgent,
+                // 添加唯一标识，避免重复记录
+                id: now.getTime() + '-' + Math.random().toString(36).substr(2, 9)
+            };
+            
+            // 存储到localStorage作为备份
+            let prizeLog = JSON.parse(localStorage.getItem('prizeLog')) || [];
+            prizeLog.push(logEntry);
+            localStorage.setItem('prizeLog', JSON.stringify(prizeLog));
+            
+            // 同时发送到服务器
+            const response = await fetch('api/log-prize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(logEntry)
+            });
+            
+            if (!response.ok) {
+                console.warn('日志记录到服务器失败，已存储到本地: ', logEntry);
+            } else {
+                console.log('日志已成功记录到服务器');
+            }
+        } catch (error) {
+            console.error('记录日志时出错: ', error);
+        }
     }
 
     displayIntroductionLines();
