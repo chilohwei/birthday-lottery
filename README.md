@@ -3,6 +3,8 @@
 > **本项目已升级为全新产品「礼遇」，免费使用，无需部署，打开即用：**
 >
 > **https://liyu.chiloh.com**
+> 
+> **开源地址：**https://github.com/chilohwei/my-lottery
 
 ---
 
