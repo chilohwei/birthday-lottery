@@ -4,7 +4,7 @@
 >
 > **https://liyu.chiloh.com**
 > 
-> **开源地址：** https://github.com/chilohwei/my-lottery
+> **开源地址：** https://github.com/chilohwei/MyLottery
 
 ---
 
